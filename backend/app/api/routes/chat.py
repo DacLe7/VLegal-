@@ -8,8 +8,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import json
 
-from app.core.rag_engine import get_rag_engine, RAGResponse
-
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -41,6 +39,18 @@ class SourceInfo(BaseModel):
     document_number: str
 
 
+def _load_rag_engine():
+    try:
+        from app.core.rag_engine import get_rag_engine
+
+        return get_rag_engine()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"RAG service could not be loaded: {exc}",
+        ) from exc
+
+
 @router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
@@ -53,7 +63,7 @@ async def chat(request: ChatRequest):
     - **stream**: Sử dụng streaming response
     """
     try:
-        engine = get_rag_engine()
+        engine = _load_rag_engine()
         
         # Build filter metadata
         filter_metadata = {}
@@ -93,6 +103,8 @@ async def chat(request: ChatRequest):
             metadata=response.metadata
         )
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi xử lý câu hỏi: {str(e)}")
 
@@ -123,7 +135,7 @@ async def search_documents(
     Trả về danh sách các đoạn văn bản có độ liên quan cao nhất với từ khóa tìm kiếm.
     """
     try:
-        engine = get_rag_engine()
+        engine = _load_rag_engine()
         
         filter_metadata = {}
         if document_type:
@@ -147,6 +159,8 @@ async def search_documents(
             for r in results
         ]
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi tìm kiếm: {str(e)}")
 

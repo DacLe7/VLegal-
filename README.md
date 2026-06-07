@@ -80,7 +80,9 @@ From the repository root:
 
 ```bash
 python -m py_compile backend/app/core/prompts.py backend/app/config.py backend/app/services/legal_chunker.py backend/app/core/vector_store.py
+python -m py_compile backend/app/main.py backend/app/api/routes/chat.py backend/app/api/routes/admin.py
 python backend/scripts/smoke_test_config.py
+python backend/scripts/smoke_test_startup.py
 ```
 
 The smoke test checks that `GEMINI_API_KEY` is set without printing it, the data folder exists, chunk settings are valid, frontend env example is public-only, and local env files are ignored.
@@ -88,3 +90,11 @@ The smoke test checks that `GEMINI_API_KEY` is set without printing it, the data
 ## Render
 
 See `DEPLOY_RENDER.md`.
+
+For Render, the backend start command remains:
+
+```bash
+cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+The backend binds its port before loading RAG services. ChromaDB, embeddings, Gemini, and the RAG engine are lazy-loaded on the first API request that needs them.

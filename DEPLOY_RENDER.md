@@ -5,11 +5,14 @@ This repository is a RAG demo for VLegal AI LaborCare. It is not a GraphRAG impl
 ## Backend service
 
 - Runtime: Python
-- Build command: `pip install -r backend/requirements.txt`
-- Start command: `cd backend && python -m app.main`
+- Python version: `3.11.10` via `.python-version`
+- Build command: `cd backend && pip install -r requirements.txt && python scripts/ingest_data.py`
+- Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Set environment variables in the Render dashboard.
 - `GEMINI_API_KEY` must be set in Render, not committed to this repository.
 - Use `CHROMA_PERSIST_DIR`, `DATA_DIR`, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K` from `.env.example` as deployment defaults.
+- The backend must bind its port quickly before loading RAG services.
+- RAG services are lazy-loaded on the first API request that needs retrieval or generation.
 
 ## Frontend service
 

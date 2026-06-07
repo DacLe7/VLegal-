@@ -8,11 +8,6 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Background
 from pydantic import BaseModel, Field
 import shutil
 
-from app.core.vector_store import get_vector_store
-from app.core.embeddings import get_embedding_service
-from app.services.document_processor import DocumentProcessor
-from app.services.metadata_extractor import MetadataExtractor, DocumentStatus
-from app.services.legal_chunker import LegalChunker
 from app.config import settings
 
 
@@ -52,13 +47,31 @@ class SystemStats(BaseModel):
     vector_db_path: str
 
 
+def _load_vector_store():
+    try:
+        from app.core.vector_store import get_vector_store
+
+        return get_vector_store()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Vector store could not be loaded: {exc}",
+        ) from exc
+
+
+@router.get("/health")
+async def health_check():
+    """Lightweight admin health check that does not load RAG services."""
+    return {"status": "healthy", "service": "admin", "rag_loading": "lazy"}
+
+
 @router.get("/documents", response_model=DocumentListResponse)
 async def list_documents():
     """
     Liệt kê tất cả văn bản đã được nạp vào hệ thống
     """
     try:
-        vector_store = get_vector_store()
+        vector_store = _load_vector_store()
         documents = vector_store.get_document_list()
         stats = vector_store.get_stats()
         
@@ -76,6 +89,8 @@ async def list_documents():
                 for doc in documents
             ]
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi lấy danh sách: {str(e)}")
 
@@ -86,7 +101,7 @@ async def get_system_stats():
     Lấy thống kê hệ thống
     """
     try:
-        vector_store = get_vector_store()
+        vector_store = _load_vector_store()
         stats = vector_store.get_stats()
         
         return SystemStats(
@@ -95,6 +110,8 @@ async def get_system_stats():
             collection_name=stats['collection_name'],
             vector_db_path=stats['persist_directory']
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi lấy thống kê: {str(e)}")
 
@@ -140,12 +157,17 @@ async def upload_document(
 async def _process_and_ingest(file_path: Path, status: str) -> UploadResponse:
     """Process and ingest a document"""
     try:
+        from app.core.embeddings import get_embedding_service
+        from app.services.document_processor import DocumentProcessor
+        from app.services.legal_chunker import LegalChunker
+        from app.services.metadata_extractor import MetadataExtractor
+
         # Initialize services
         doc_processor = DocumentProcessor()
         metadata_extractor = MetadataExtractor()
         chunker = LegalChunker()
         embedding_service = get_embedding_service()
-        vector_store = get_vector_store()
+        vector_store = _load_vector_store()
         
         # Process document
         doc = doc_processor.process_document(file_path)
@@ -200,7 +222,7 @@ async def delete_document(filename: str):
     - **filename**: Tên file cần xóa
     """
     try:
-        vector_store = get_vector_store()
+        vector_store = _load_vector_store()
         deleted_count = vector_store.delete_document(filename)
         
         if deleted_count == 0:
@@ -249,7 +271,7 @@ async def reset_vector_store():
     ⚠️ Cảnh báo: Thao tác này không thể hoàn tác!
     """
     try:
-        vector_store = get_vector_store()
+        vector_store = _load_vector_store()
         vector_store.reset()
         
         return {
@@ -257,5 +279,7 @@ async def reset_vector_store():
             "warning": "Tất cả dữ liệu đã bị xóa. Cần chạy lại script ingest để nạp dữ liệu."
         }
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi reset: {str(e)}")
