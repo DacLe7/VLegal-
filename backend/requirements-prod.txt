@@ -1,0 +1,31 @@
+# Production dependencies for Render Free backend.
+# API runtime + DOCX ingestion + ChromaDB RAG serving only.
+
+# CPU-only PyTorch for sentence-transformers. This avoids CUDA/NVIDIA wheels.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.1+cpu
+
+# API server
+fastapi==0.110.3
+uvicorn==0.29.0
+python-multipart==0.0.9
+
+# Configuration
+pydantic==2.7.4
+pydantic-settings==2.3.4
+python-dotenv==1.0.1
+
+# LLM
+google-generativeai==0.8.3
+tenacity==8.5.0
+
+# Embeddings
+sentence-transformers==2.7.0
+numpy==1.26.4
+
+# Vector database
+chromadb==0.5.23
+
+# DOCX ingestion
+python-docx==1.1.2
+tqdm==4.66.4

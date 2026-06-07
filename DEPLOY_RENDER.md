@@ -6,14 +6,18 @@ This repository is a RAG demo for VLegal AI LaborCare. It is not a GraphRAG impl
 
 - Runtime: Python
 - Python version: `3.11.10` via `.python-version`
-- Build command: `cd backend && pip install -r requirements.txt && python scripts/ingest_data.py`
+- Build command: `cd backend && pip install -r requirements-prod.txt && python scripts/ingest_data.py`
 - Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Set environment variables in the Render dashboard.
 - `GEMINI_API_KEY` must be set in Render, not committed to this repository.
 - `FRONTEND_ORIGINS` can be set to `https://vlegal-rag-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000`.
+- Use `EMBEDDING_MODEL=intfloat/multilingual-e5-small` for Render Free.
+- Set `TOKENIZERS_PARALLELISM=false`, `OMP_NUM_THREADS=1`, and `MKL_NUM_THREADS=1` to reduce memory pressure.
+- Set `PYTHON_VERSION=3.11.10` if Render does not automatically honor `.python-version`.
 - Use `CHROMA_PERSIST_DIR`, `DATA_DIR`, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K` from `.env.example` as deployment defaults.
 - The backend must bind its port quickly before loading RAG services.
 - RAG services are lazy-loaded on the first API request that needs retrieval or generation.
+- If changing `EMBEDDING_MODEL`, reingest the vector database with the same model before serving chat requests.
 
 ## Frontend service
 

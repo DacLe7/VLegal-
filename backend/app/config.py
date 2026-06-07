@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 import os
 
 
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
+
 # Find and load .env file
 def _find_env_file():
     """Find .env file starting from current dir up to project root"""
@@ -44,6 +49,9 @@ class Settings(BaseSettings):
     data_dir: str = Field(default="./Data")
     chunk_size: int = Field(default=1800)
     chunk_overlap: int = Field(default=150)
+    
+    # Embeddings
+    embedding_model: str = Field(default="intfloat/multilingual-e5-small")
     
     # LLM Settings
     llm_model: str = Field(default="gemini-2.5-flash")

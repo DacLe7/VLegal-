@@ -4,6 +4,7 @@ Core RAG pipeline: Retrieve → Augment → Generate
 """
 from typing import List, Dict, Any, Optional, Generator
 from dataclasses import dataclass
+import logging
 
 from app.core.embeddings import EmbeddingService, get_embedding_service
 from app.core.vector_store import VectorStore, SearchResult, get_vector_store
@@ -15,6 +16,9 @@ from app.core.prompts import (
     format_context
 )
 from app.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -66,6 +70,21 @@ class RAGEngine:
         self.llm_service = llm_service or get_llm_service()
         self.top_k = top_k or settings.retrieval_top_k
         self.min_relevance_score = min_relevance_score
+        self._log_runtime_state()
+    
+    def _log_runtime_state(self) -> None:
+        try:
+            collection_count = self.vector_store.collection.count()
+        except Exception as exc:
+            collection_count = f"unavailable ({exc})"
+
+        logger.info(
+            "RAG engine initialized: embedding_model=%s collection=%s collection_count=%s top_k=%s",
+            getattr(self.embedding_service, "model_name", ""),
+            getattr(self.vector_store, "collection_name", ""),
+            collection_count,
+            self.top_k,
+        )
     
     def retrieve(
         self,
@@ -227,6 +246,7 @@ def get_rag_engine() -> RAGEngine:
     """Get or create RAG engine singleton"""
     global _rag_engine
     if _rag_engine is None:
+        logger.info("Initializing RAG engine lazily")
         _rag_engine = RAGEngine()
     return _rag_engine
 
