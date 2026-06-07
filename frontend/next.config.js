@@ -6,6 +6,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/backend/chat',
+        destination: `${backendApiUrl}/chat/`,
+      },
+      {
         source: '/api/backend/:path*',
         destination: `${backendApiUrl}/:path*`,
       },
