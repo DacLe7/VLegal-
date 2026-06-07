@@ -1,0 +1,47 @@
+DOCUMENT: HỆ THỐNG RAG CHATBOT PHÁP LUẬT (V-LEGAL BOT)
+1. Giới thiệu (Introduction)
+Hệ thống là một trợ lý ảo thông minh chuyên biệt trong lĩnh vực pháp luật. Chatbot sử dụng kiến trúc RAG (Retrieval-Augmented Generation) để truy xuất thông tin chính xác từ kho dữ liệu pháp lý do đội ngũ phát triển (Developer) cung cấp và quản lý. Hệ thống tích hợp Evidently AI để thực hiện Benchmark và giám sát chất lượng câu trả lời, đảm bảo tính tin cậy tuyệt đối cho người dùng.
+2. Quản lý Dữ liệu (Data Management)
+Khác với các hệ thống crawl dữ liệu tự động, hệ thống này tập trung vào tính kiểm soát cao:
+Nguồn dữ liệu (Source Data): Các tệp văn bản quy phạm pháp luật (WORD) đã được Developer chọn lọc, làm sạch và tải lên hệ thống (Internal Pre-loaded Data).
+Quy trình nạp (Ingestion):
+Upload: Developer tải các tệp luật mới nhất lên hệ thống.( trong folder Data)
+Preprocessing: Hệ thống trích xuất văn bản, xử lý bảng biểu và Metadata (Số hiệu, Ngày hiệu lực, Trạng thái).
+Legal-Specific Chunking: Cắt nhỏ văn bản theo đơn vị Điều (Article) hoặc Khoản (Clause) để đảm bảo ngữ cảnh pháp lý không bị chia cắt.
+Vectorization: Sử dụng Embedding Model (ví dụ: multilingual-e5-large) để chuyển đổi thành vector.
+Storage: Lưu trữ vào Vector Database (ChromaDB, Pinecone hoặc Milvus).
+3. Kiến trúc Hệ thống (System Architecture)
+Hệ thống vận hành theo quy trình khép kín:
+Retrieval (Truy xuất): Khi người dùng hỏi, hệ thống tìm kiếm trong kho dữ liệu "Pre-loaded" các đoạn văn bản có độ tương đồng cao nhất.
+Augmentation (Làm giàu): Kết hợp câu hỏi của người dùng với các đoạn luật tìm được vào một Prompt chuyên dụng.
+Generation (Tạo câu trả lời): LLM ( Gemini) tạo ra câu trả lời dựa trên dữ liệu đầu vào. + System Prompt
+Evaluation (Đánh giá - Evidently AI): Kiểm tra chất lượng đầu ra trước khi hiển thị cho người dùng.
+4. Tích hợp Đánh giá & Giám sát với Evidently AI
+Evidently AI được sử dụng để chạy Benchmark định kỳ và giám sát Production.
+4.1. Benchmark (Kiểm thử trước khi Release)
+Mỗi khi Developer cập nhật dữ liệu mới (Upload data mới), hệ thống sẽ chạy bộ Test Suite của Evidently:
+Semantic Similarity: So sánh câu trả lời của Bot với "Câu trả lời mẫu chuẩn" (Gold Dataset) của chuyên gia pháp lý.
+Context Precision: Đánh giá xem dữ liệu mà Dev upload lên có đủ để trả lời các tình huống pháp lý phổ biến hay không.
+4.2. Giám sát thời gian thực (Monitoring)
+Sử dụng các Evidently Descriptors để theo dõi:
+Faithfulness (Trung thực): Đảm bảo Bot không trả lời ngoài phạm vi dữ liệu đã được upload.
+Citations Check: Kiểm tra xem Bot có trích dẫn đúng số Điều/Khoản từ dữ liệu nguồn không.
+Toxic/Bias Detection: Đảm bảo câu trả lời tuân thủ chuẩn mực đạo đức pháp luật.
+5. Đặc thù Xử lý Pháp luật
+Lọc dữ liệu (Filtering): Cho phép người dùng lọc tìm kiếm theo loại văn bản (Luật, Nghị định, Thông tư) dựa trên Metadata mà Dev đã gán khi upload.
+Xử lý văn bản hết hiệu lực: Khi Dev upload phiên bản luật mới, hệ thống tự động đánh dấu (flag) các đoạn văn bản cũ là "Hết hiệu lực" để tránh truy xuất sai.
+Tính minh bạch: Mọi câu trả lời phải chỉ rõ nguồn gốc tệp tin mà Dev đã tải lên (VD: "Trích từ file Luat_Dat_Dai_2024.pdf"). Kèm CTA ( Ví dụ như điều số….bộ luật…năm...)
+6. Công nghệ đề xuất (Tech Stack)
+Backend: Python (FastAPI).
+Frontend: ReactJS, NextJS
+RAG Framework: LangChain
+Vector DB: ChromaDB (Phù hợp để quản lý dữ liệu upload nội bộ).
+Evaluation: Evidently AI.
+LLM:  Gemini 1.5 Pro cho độ chính xác tiếng Việt cao nhất.
+7. Quy trình cho Developer (Developer Workflow)
+Chuẩn bị: Tập hợp các văn bản luật dưới dạng tệp tin.
+Upload: Sử dụng công cụ Admin để nạp dữ liệu vào Vector DB.
+Benchmark: Chạy evidently_report.py để kiểm tra độ chính xác trên tập dữ liệu mới.
+Deploy: Cập nhật phiên bản Chatbot đã qua kiểm định.
+Monitor: Theo dõi Dashboard của Evidently để phát hiện các lỗ hổng kiến thức pháp lý mà người dùng đang quan tâm để bổ sung dữ liệu kịp thời.
+
