@@ -98,3 +98,15 @@ cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
 The backend binds its port before loading RAG services. ChromaDB, embeddings, Gemini, and the RAG engine are lazy-loaded on the first API request that needs them.
+
+Frontend Render env:
+
+```env
+NEXT_PUBLIC_API_URL=https://vlegal-rag-backend.onrender.com
+```
+
+Backend Render env can include:
+
+```env
+FRONTEND_ORIGINS=https://vlegal-rag-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000
+```

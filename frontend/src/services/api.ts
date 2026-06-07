@@ -1,8 +1,23 @@
 /**
- * API Service for V-Legal Bot
+ * API service for V-Legal RAG demo.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const CONNECTION_ERROR_MESSAGE =
+  'Không thể kết nối backend. Vui lòng kiểm tra API URL hoặc CORS.';
+
+function normalizeBaseUrl(url?: string): string {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+function getApiBaseUrl(): string {
+  const configuredUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+  return process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface ChatRequest {
   question: string;
@@ -47,37 +62,101 @@ class ApiService {
   private baseUrl: string;
 
   constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
+    this.baseUrl = normalizeBaseUrl(baseUrl);
   }
 
-  async chat(request: ChatRequest): Promise<ChatResponse> {
-    const response = await fetch(`${this.baseUrl}/chat/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
+  private endpoint(path: string): string {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return this.baseUrl ? `${this.baseUrl}${normalizedPath}` : normalizedPath;
+  }
+
+  private logRequest(endpoint: string): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('API request', {
+        apiBaseUrl: this.baseUrl || '(same-origin)',
+        endpoint,
+      });
+    }
+  }
+
+  private async parseError(response: Response, fallbackMessage: string): Promise<string> {
+    try {
+      const error = await response.json();
+      return error.detail || fallbackMessage;
+    } catch {
+      return fallbackMessage;
+    }
+  }
+
+  private async fetchJson<T>(
+    path: string,
+    options: RequestInit | undefined,
+    errorMessage: string,
+  ): Promise<T> {
+    const endpoint = this.endpoint(path);
+    this.logRequest(endpoint);
+
+    let response: Response;
+    try {
+      response = await fetch(endpoint, options);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API fetch failed', {
+          apiBaseUrl: this.baseUrl || '(same-origin)',
+          endpoint,
+          error,
+        });
+      }
+      throw new Error(CONNECTION_ERROR_MESSAGE);
+    }
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Lỗi khi gửi câu hỏi');
+      throw new Error(await this.parseError(response, errorMessage));
     }
 
     return response.json();
   }
 
-  async *chatStream(request: ChatRequest): AsyncGenerator<string> {
-    const response = await fetch(`${this.baseUrl}/chat/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  async chat(request: ChatRequest): Promise<ChatResponse> {
+    return this.fetchJson<ChatResponse>(
+      '/chat',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
       },
-      body: JSON.stringify({ ...request, stream: true }),
-    });
+      'Lỗi khi gửi câu hỏi',
+    );
+  }
+
+  async *chatStream(request: ChatRequest): AsyncGenerator<string> {
+    const endpoint = this.endpoint('/chat');
+    this.logRequest(endpoint);
+
+    let response: Response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...request, stream: true }),
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API fetch failed', {
+          apiBaseUrl: this.baseUrl || '(same-origin)',
+          endpoint,
+          error,
+        });
+      }
+      throw new Error(CONNECTION_ERROR_MESSAGE);
+    }
 
     if (!response.ok) {
-      throw new Error('Lỗi khi gửi câu hỏi');
+      throw new Error(await this.parseError(response, 'Lỗi khi gửi câu hỏi'));
     }
 
     const reader = response.body?.getReader();
@@ -104,8 +183,8 @@ class ApiService {
             if (data.done) {
               return;
             }
-          } catch (e) {
-            // Skip invalid JSON
+          } catch {
+            // Ignore partial or malformed stream frames.
           }
         }
       }
@@ -118,33 +197,27 @@ class ApiService {
       top_k: topK.toString(),
     });
 
-    const response = await fetch(`${this.baseUrl}/chat/search?${params}`);
-
-    if (!response.ok) {
-      throw new Error('Lỗi khi tìm kiếm');
-    }
-
-    return response.json();
+    return this.fetchJson<Source[]>(
+      `/chat/search?${params}`,
+      undefined,
+      'Lỗi khi tìm kiếm',
+    );
   }
 
-  async getDocuments(): Promise<{ documents: DocumentInfo[]; total_documents: number; total_chunks: number }> {
-    const response = await fetch(`${this.baseUrl}/admin/documents`);
-
-    if (!response.ok) {
-      throw new Error('Lỗi khi lấy danh sách văn bản');
-    }
-
-    return response.json();
+  async getDocuments(): Promise<{
+    documents: DocumentInfo[];
+    total_documents: number;
+    total_chunks: number;
+  }> {
+    return this.fetchJson<{
+      documents: DocumentInfo[];
+      total_documents: number;
+      total_chunks: number;
+    }>('/admin/documents', undefined, 'Lỗi khi lấy danh sách văn bản');
   }
 
   async getStats(): Promise<SystemStats> {
-    const response = await fetch(`${this.baseUrl}/admin/stats`);
-
-    if (!response.ok) {
-      throw new Error('Lỗi khi lấy thống kê');
-    }
-
-    return response.json();
+    return this.fetchJson<SystemStats>('/admin/stats', undefined, 'Lỗi khi lấy thống kê');
   }
 
   async uploadDocument(file: File, status: string = 'Còn hiệu lực'): Promise<any> {
@@ -152,34 +225,31 @@ class ApiService {
     formData.append('file', file);
     formData.append('status', status);
 
-    const response = await fetch(`${this.baseUrl}/admin/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Lỗi khi upload');
-    }
-
-    return response.json();
+    return this.fetchJson(
+      '/admin/upload',
+      {
+        method: 'POST',
+        body: formData,
+      },
+      'Lỗi khi upload',
+    );
   }
 
   async deleteDocument(filename: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/admin/documents/${encodeURIComponent(filename)}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Lỗi khi xóa văn bản');
-    }
-
-    return response.json();
+    return this.fetchJson(
+      `/admin/documents/${encodeURIComponent(filename)}`,
+      {
+        method: 'DELETE',
+      },
+      'Lỗi khi xóa văn bản',
+    );
   }
 
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
+      const endpoint = this.endpoint('/health');
+      this.logRequest(endpoint);
+      const response = await fetch(endpoint);
       return response.ok;
     } catch {
       return false;

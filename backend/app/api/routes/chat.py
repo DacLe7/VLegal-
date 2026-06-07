@@ -51,6 +51,7 @@ def _load_rag_engine():
         ) from exc
 
 
+@router.post("", response_model=ChatResponse, include_in_schema=False)
 @router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """

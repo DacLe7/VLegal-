@@ -6,6 +6,7 @@ RAG dependencies are loaded.
 """
 
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,10 +35,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+def _get_allowed_origins() -> list[str]:
+    default_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://vlegal-rag-frontend.onrender.com",
+    ]
+    env_origins = [
+        origin.strip()
+        for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys(default_origins + env_origins))
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_get_allowed_origins(),
+    allow_origin_regex=r"https://.*\.onrender\.com",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

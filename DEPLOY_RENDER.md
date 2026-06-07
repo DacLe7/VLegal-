@@ -10,6 +10,7 @@ This repository is a RAG demo for VLegal AI LaborCare. It is not a GraphRAG impl
 - Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Set environment variables in the Render dashboard.
 - `GEMINI_API_KEY` must be set in Render, not committed to this repository.
+- `FRONTEND_ORIGINS` can be set to `https://vlegal-rag-frontend.onrender.com,http://localhost:3000,http://127.0.0.1:3000`.
 - Use `CHROMA_PERSIST_DIR`, `DATA_DIR`, `CHUNK_SIZE`, `CHUNK_OVERLAP`, and `RETRIEVAL_TOP_K` from `.env.example` as deployment defaults.
 - The backend must bind its port quickly before loading RAG services.
 - RAG services are lazy-loaded on the first API request that needs retrieval or generation.
@@ -20,6 +21,7 @@ This repository is a RAG demo for VLegal AI LaborCare. It is not a GraphRAG impl
 - Build command: `cd frontend && npm install && npm run build`
 - Start command: `cd frontend && npm start`
 - Set `NEXT_PUBLIC_API_URL` to the deployed backend URL.
+- For this demo frontend, use `NEXT_PUBLIC_API_URL=https://vlegal-rag-backend.onrender.com`.
 
 ## ChromaDB storage
 
