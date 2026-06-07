@@ -102,7 +102,8 @@ The backend binds its port before loading RAG services. ChromaDB, embeddings, Ge
 Frontend Render env:
 
 ```env
-NEXT_PUBLIC_API_URL=https://vlegal-rag-backend.onrender.com
+NEXT_PUBLIC_API_URL=/api/backend
+BACKEND_API_URL=https://vlegal-rag-backend.onrender.com
 ```
 
 Backend Render env can include:

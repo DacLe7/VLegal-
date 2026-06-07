@@ -9,12 +9,19 @@ function normalizeBaseUrl(url?: string): string {
   return (url || '').trim().replace(/\/+$/, '');
 }
 
+function isAbsoluteUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 function getApiBaseUrl(): string {
   const configuredUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
   if (configuredUrl) {
+    if (process.env.NODE_ENV === 'production' && isAbsoluteUrl(configuredUrl)) {
+      return '/api/backend';
+    }
     return configuredUrl;
   }
-  return process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+  return process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '/api/backend';
 }
 
 const API_BASE_URL = getApiBaseUrl();

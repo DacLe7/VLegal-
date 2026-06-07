@@ -20,8 +20,9 @@ This repository is a RAG demo for VLegal AI LaborCare. It is not a GraphRAG impl
 - Runtime: Node
 - Build command: `cd frontend && npm install && npm run build`
 - Start command: `cd frontend && npm start`
-- Set `NEXT_PUBLIC_API_URL` to the deployed backend URL.
-- For this demo frontend, use `NEXT_PUBLIC_API_URL=https://vlegal-rag-backend.onrender.com`.
+- Set `NEXT_PUBLIC_API_URL=/api/backend`.
+- Set `BACKEND_API_URL=https://vlegal-rag-backend.onrender.com`.
+- Browser requests go to the same-origin Next.js proxy, for example `/api/backend/chat`, and Next.js forwards them to the backend.
 
 ## ChromaDB storage
 

@@ -23,7 +23,8 @@ npm install
 Tạo file `.env.local` (optional):
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=/api/backend
+BACKEND_API_URL=https://vlegal-rag-backend.onrender.com
 ```
 
 ### 3. Chạy development server

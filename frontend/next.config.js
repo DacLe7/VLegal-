@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
+const backendApiUrl = (process.env.BACKEND_API_URL || 'https://vlegal-rag-backend.onrender.com').replace(/\/+$/, '');
+
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'http://localhost:8000/:path*',
+        source: '/api/backend/:path*',
+        destination: `${backendApiUrl}/:path*`,
       },
     ];
   },
